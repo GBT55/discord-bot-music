@@ -1,0 +1,31 @@
+# file: discord-bot-outro/kubernetes/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: musicbot-deployment
+  namespace: discord-bots
+spec:
+  selector:
+    matchLabels:
+      app: musicbot
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: musicbot
+    spec:
+      containers:
+      - name: musicbot
+        image: gbt55/discord-bot-music:v1.2
+          #value: "yourApiKey"
+        # readinessProbe:
+        #   httpGet:
+        #     path: /
+        #     port: 80
+        #   initialDelaySeconds: 5
+        #   periodSeconds: 10
+        # livenessProbe:
+        #   tcpSocket:
+        #     port: 80
+        #   initialDelaySeconds: 15
+        #   periodSeconds: 20
