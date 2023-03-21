@@ -17,6 +17,12 @@ spec:
       containers:
       - name: musicbot
         image: gbt55/discord-bot-music:v1.2
+        env:
+        - name: API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: discord-outrobot
+              key: api-key
           #value: "yourApiKey"
         # readinessProbe:
         #   httpGet:
