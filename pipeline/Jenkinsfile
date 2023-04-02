@@ -3,7 +3,7 @@ podTemplate (yaml: '''
               kind: Pod
               spec:
                 containers:
-                - name: docker
+                - name: dind
                   image: docker:dind
                   securityContext:
                     privileged: true
@@ -12,7 +12,7 @@ podTemplate (yaml: '''
         def app
 
         stage('Clone repository') {
-            container('docker')
+            container('dind')
             {
                 checkout scm
             }
@@ -20,7 +20,7 @@ podTemplate (yaml: '''
         }
 
         stage('Build image') {
-            container('docker'){
+            container('dind'){
                 app = docker.build("gbt55/discord-bot-music", "./app")
             }
             
@@ -35,10 +35,12 @@ podTemplate (yaml: '''
         // }
 
         stage('Push image') {
-            
-            docker.withRegistry('https://registry.hub.docker.com', 'dockerhub') {
+            container('dind'){
+                docker.withRegistry('https://registry.hub.docker.com', 'dockerhub') {
                 app.push("v1.0.${env.BUILD_NUMBER}")
+                }
             }
+            
         }
         
         stage('Trigger ManifestUpdate') {
