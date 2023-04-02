@@ -45,7 +45,7 @@ podTemplate (yaml: '''
         
         stage('Trigger ManifestUpdate') {
                     echo "triggering updatemanifestjob"
-                    build job: 'pipeline-updatemanifest-discord-bot-music', parameters: [string(name: 'DOCKERTAG', value: env.BUILD_NUMBER)]
+                    build job: 'TM-musicbot', parameters: [string(name: 'DOCKERTAG', value: env.BUILD_NUMBER)]
             }
     }
 }
