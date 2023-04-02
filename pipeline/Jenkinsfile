@@ -1,52 +1,60 @@
-
-pipeline {
-    agent {
-        kubernetes {
-            yamlFile 'pipeline/dind-pod.yaml'
-        }
-    }
-    stages {
+podTemplate (yaml: '''
+              apiVersion: v1
+              kind: Pod
+              spec:
+                volumes:
+                - name: docker-socket
+                  emptyDir: {}
+                containers:
+                - name: docker
+                  image: docker:19.03.1
+                  readinessProbe:
+                    exec:
+                      command: [sh, -c, "ls -S /var/run/docker.sock"]
+                  command:
+                  - sleep
+                  args:
+                  - 99d
+                  volumeMounts:
+                  - name: docker-socket
+                    mountPath: /var/run
+                - name: docker-daemon
+                  image: docker:19.03.1-dind
+                  securityContext:
+                    privileged: true
+                  volumeMounts:
+                  - name: docker-socket
+                    mountPath: /var/run
+''') {
+    node(POD_LABEL) {
         def app
 
         stage('Clone repository') {
-            steps {
-                container('docker') {
-                    checkout scm
-                }   
-            }
+            checkout scm
         }
 
         stage('Build image') {
-            steps {
-                container('docker') {
-                    app = docker.build("gbt55/discord-bot-music", "./app")
-                }   
-            }
+            app = docker.build("gbt55/discord-bot-music", "./app")
         }
 
-    // stage('Test image') {
+        // stage('Test image') {
+    
 
-
-    //     app.inside {
-    //         sh 'echo "Tests passed"'
-    //     }
-    // }
+        //     app.inside {
+        //         sh 'echo "Tests passed"'
+        //     }
+        // }
 
         stage('Push image') {
-            steps {
-                    container('docker') {
-                        docker.withRegistry('https://registry.hub.docker.com', 'dockerhub') {
-                            app.push("v1.0.${env.BUILD_NUMBER}")
-                            }
-                    }   
-                }
+            
+            docker.withRegistry('https://registry.hub.docker.com', 'dockerhub') {
+                app.push("v1.0.${env.BUILD_NUMBER}")
+            }
         }
-
+        
         stage('Trigger ManifestUpdate') {
-            steps {
-                echo "triggering updatemanifestjob"
+                    echo "triggering updatemanifestjob"
                     build job: 'pipeline-updatemanifest-discord-bot-music', parameters: [string(name: 'DOCKERTAG', value: env.BUILD_NUMBER)]
-            } 
-        }
+            }
     }
 }
