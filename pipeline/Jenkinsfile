@@ -1,20 +1,28 @@
 
 pipeline {
-  agent {
-    kubernetes {
-      yamlFile 'pipeline/dind-pod.yaml'
+    agent {
+        kubernetes {
+            yamlFile 'pipeline/dind-pod.yaml'
+        }
     }
-  }
-  stages {
-    def app
+    stages {
+        def app
 
-    stage('Clone repository') {
-        checkout scm
-    }
+        stage('Clone repository') {
+            steps {
+                container('docker') {
+                    checkout scm
+                }   
+            }
+        }
 
-    stage('Build image') {
-        app = docker.build("gbt55/discord-bot-music", "./app")
-    }
+        stage('Build image') {
+            steps {
+                container('docker') {
+                    app = docker.build("gbt55/discord-bot-music", "./app")
+                }   
+            }
+        }
 
     // stage('Test image') {
 
@@ -24,16 +32,21 @@ pipeline {
     //     }
     // }
 
-    stage('Push image') {
-        
-        docker.withRegistry('https://registry.hub.docker.com', 'dockerhub') {
-            app.push("v1.0.${env.BUILD_NUMBER}")
+        stage('Push image') {
+            steps {
+                    container('docker') {
+                        docker.withRegistry('https://registry.hub.docker.com', 'dockerhub') {
+                            app.push("v1.0.${env.BUILD_NUMBER}")
+                            }
+                    }   
+                }
+        }
+
+        stage('Trigger ManifestUpdate') {
+            steps {
+                echo "triggering updatemanifestjob"
+                    build job: 'pipeline-updatemanifest-discord-bot-music', parameters: [string(name: 'DOCKERTAG', value: env.BUILD_NUMBER)]
+            } 
         }
     }
-
-    stage('Trigger ManifestUpdate') {
-                echo "triggering updatemanifestjob"
-                build job: 'pipeline-updatemanifest-discord-bot-music', parameters: [string(name: 'DOCKERTAG', value: env.BUILD_NUMBER)]
-        }
-  }
 }
