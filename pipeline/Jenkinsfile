@@ -12,11 +12,18 @@ podTemplate (yaml: '''
         def app
 
         stage('Clone repository') {
-            checkout scm
+            container('docker')
+            {
+                checkout scm
+            }
+            
         }
 
         stage('Build image') {
-            app = docker.build("gbt55/discord-bot-music", "./app")
+            container('docker'){
+                app = docker.build("gbt55/discord-bot-music", "./app")
+            }
+            
         }
 
         // stage('Test image') {
