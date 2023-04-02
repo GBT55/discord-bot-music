@@ -1,48 +1,39 @@
-podTemplate(yaml: '''
-              apiVersion: v1
-              kind: Pod
-              spec:
-              containers:
-              - name: docker
-                image: docker:dind
-                readinessProbe:
-                   exec:
-                      command: [sh, -c, "ls -S /var/run/docker.sock"]
-                command:
-                - sleep
-                args:
-                - 99d
 
-''') {
-    node(POD_LABEL) {
-        def app
-
-        stage('Clone repository') {
-            checkout scm
-        }
-
-        stage('Build image') {
-            app = docker.build("gbt55/discord-bot-music", "./app")
-        }
-
-        // stage('Test image') {
-    
-
-        //     app.inside {
-        //         sh 'echo "Tests passed"'
-        //     }
-        // }
-
-        stage('Push image') {
-            
-            docker.withRegistry('https://registry.hub.docker.com', 'dockerhub') {
-                app.push("v1.0.${env.BUILD_NUMBER}")
-            }
-        }
-        
-        stage('Trigger ManifestUpdate') {
-                    echo "triggering updatemanifestjob"
-                    build job: 'pipeline-updatemanifest-discord-bot-music', parameters: [string(name: 'DOCKERTAG', value: env.BUILD_NUMBER)]
-            }
+pipeline {
+  agent {
+    kubernetes {
+      yamlFile 'pipeline/dind-pod.yaml'
     }
+  }
+  stages {
+    def app
+
+    stage('Clone repository') {
+        checkout scm
+    }
+
+    stage('Build image') {
+        app = docker.build("gbt55/discord-bot-music", "./app")
+    }
+
+    // stage('Test image') {
+
+
+    //     app.inside {
+    //         sh 'echo "Tests passed"'
+    //     }
+    // }
+
+    stage('Push image') {
+        
+        docker.withRegistry('https://registry.hub.docker.com', 'dockerhub') {
+            app.push("v1.0.${env.BUILD_NUMBER}")
+        }
+    }
+
+    stage('Trigger ManifestUpdate') {
+                echo "triggering updatemanifestjob"
+                build job: 'pipeline-updatemanifest-discord-bot-music', parameters: [string(name: 'DOCKERTAG', value: env.BUILD_NUMBER)]
+        }
+  }
 }
