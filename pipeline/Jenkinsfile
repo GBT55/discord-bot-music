@@ -5,6 +5,9 @@ podTemplate (yaml: '''
                 containers:
                 - name: dind
                   image: docker:dind
+                  readinessProbe:
+                    exec:
+                      command: [sh, -c, "docker ps > /dev/null"]
                   securityContext:
                     privileged: true
 ''') {
